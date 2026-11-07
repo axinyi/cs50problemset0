@@ -326,9 +326,13 @@ end
 ------------------------------------------------------------------------------------------
 -- main
 ------------------------------------------------------------------------------------------
-local resolve = rawget(_G, "resolve")
-if not resolve and rawget(_G, "Resolve") then resolve = Resolve() end
-if not resolve and rawget(_G, "bmd") then resolve = bmd.scriptapp("Resolve") end
+print("[Gizmo] Script started")
+local resolve = nil
+pcall(function() resolve = _G.resolve end)
+if not resolve then pcall(function() resolve = Resolve() end) end
+if not resolve then pcall(function() resolve = bmd.scriptapp("Resolve") end) end
+if not resolve then pcall(function() resolve = fu:GetResolve() end) end
+print("[Gizmo] Connected to Resolve: " .. tostring(resolve ~= nil))
 
 local function main()
   if not resolve then error("Could not connect to DaVinci Resolve.") end
