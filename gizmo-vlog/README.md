@@ -12,12 +12,16 @@ from the clips and song already in your Resolve project. It creates a **new** pr
    - **Windows:** `%APPDATA%\Blackmagic Design\DaVinci Resolve\Support\Fusion\Scripts\Utility\`
 3. Restart Resolve.
 
-## Run
+## Run (paste into the Console, which is the method that worked on Resolve 21 free)
 
 1. Open the project that has your DJI clips and the song.
-2. Open **Workspace → Console** to watch progress.
-3. Click **Workspace → Scripts → Gizmo Vlog Builder**.
-4. Wait about 1–2 minutes. Resolve switches between the Edit and Color pages while it measures each clip.
+2. Open **Workspace → Console**, make sure it is on **Lua**, and click **Cls** to clear it.
+3. Open `Gizmo - paste into Console (short lines).txt`, copy everything in it, paste it into the empty Console input, and press Enter.
+4. Wait up to a minute. A new project called "Gizmo - Day in the Life" opens with the edit.
+
+On Resolve 21 free, **Workspace → Scripts** lists the script but it doesn't visibly run, and Lua scripts aren't allowed to read files there. Because of that, automatic brightness measurement is skipped and every clip gets the cinematic look only.
+
+If you change `Gizmo Vlog Builder.lua`, rebuild the paste file from it. It's the same code with comments removed, split into short `GZ=GZ..[==[...]==]` lines, with `assert(loadstring(GZ))()` as the last line.
 
 ## After it runs (about 1 minute of manual polish)
 
