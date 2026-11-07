@@ -24,6 +24,8 @@
     your markers instead of the BPM grid.
 ]]
 
+print("[Gizmo] Script started")
+
 local CONFIG = {
   PROJECT_NAME    = "Gizmo - Day in the Life",
   TIMELINE_NAME   = "Gizmo - Cinematic Cut",
@@ -65,9 +67,15 @@ local function num(v)
   return s and tonumber(s) or nil
 end
 
-local SEP = package.config:sub(1, 1)
-local TMP = os.getenv("TMPDIR") or os.getenv("TEMP") or os.getenv("TMP") or "/tmp"
+-- Resolve may run scripts in a sandbox where package/os/io are missing: guard every use.
+local HAS_IO = (type(io) == "table" and type(io.open) == "function")
+local SEP = "/"
+pcall(function() SEP = package.config:sub(1, 1) end)
+local TMP = nil
+pcall(function() TMP = os.getenv("TMPDIR") or os.getenv("TEMP") or os.getenv("TMP") end)
+TMP = TMP or ((SEP == "\\") and "C:\\Windows\\Temp" or "/tmp")
 if TMP:sub(-1) == SEP then TMP = TMP:sub(1, -2) end
+local function removeFile(path) pcall(function() os.remove(path) end) end
 
 local function tc(frame)
   local fps = CONFIG.FPS
@@ -183,6 +191,7 @@ local function readPPM(data, hist)
 end
 
 local function readFile(path)
+  if not HAS_IO then return nil end
   local f = io.open(path, "rb")
   if not f then return nil end
   local d = f:read("*a")
@@ -196,10 +205,10 @@ local function probeFrame(project, hist)
   local formats = stillFormat and { stillFormat } or { "bmp", "ppm" }
   for _, ext in ipairs(formats) do
     local path = TMP .. SEP .. "gizmo_probe." .. ext
-    os.remove(path)
+    removeFile(path)
     local ok = project:ExportCurrentFrameAsStill(path)
     local data = ok and readFile(path)
-    os.remove(path)
+    removeFile(path)
     if data then
       local parsed = (ext == "bmp") and readBMP(data, hist) or readPPM(data, hist)
       if parsed then stillFormat = ext; return true end
@@ -326,7 +335,6 @@ end
 ------------------------------------------------------------------------------------------
 -- main
 ------------------------------------------------------------------------------------------
-print("[Gizmo] Script started")
 local resolve = nil
 pcall(function() resolve = _G.resolve end)
 if not resolve then pcall(function() resolve = Resolve() end) end
@@ -342,6 +350,7 @@ local function main()
   if not src then error("Open the project that contains your clips first.") end
   local srcFps = num(src:GetSetting("timelineFrameRate")) or fps
   log("Reading media from project '%s'", src:GetName())
+  if not HAS_IO then log("Note: this Resolve blocks file access for scripts - brightness can't be measured, applying the look only.") end
 
   -- 1. gather media from the current project ------------------------------------------
   local all = {}
