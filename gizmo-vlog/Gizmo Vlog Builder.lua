@@ -85,12 +85,23 @@ local function tc(frame)
     math.floor(s / 3600), math.floor(s / 60) % 60, s % 60, ff)
 end
 
+-- Resolve's Lua lists can carry extra fields (e.g. a count "n"); keep only real objects.
+local function objs(t)
+  local out = {}
+  if type(t) ~= "table" then return out end
+  for _, v in pairs(t) do
+    local tv = type(v)
+    if tv == "userdata" or tv == "table" then table.insert(out, v) end
+  end
+  return out
+end
+
 local function collect(folder, out)
-  if not folder then return end
+  if type(folder) ~= "userdata" and type(folder) ~= "table" then return end
   local clips = folder:GetClipList() or {}
-  for _, c in pairs(clips) do table.insert(out, c) end
+  for _, c in ipairs(objs(clips)) do table.insert(out, c) end
   local subs = folder:GetSubFolderList() or {}
-  for _, f in pairs(subs) do collect(f, out) end
+  for _, f in ipairs(objs(subs)) do collect(f, out) end
 end
 
 -- "DJI_20261107075737_0046_D" -> "075737_20261107" (time of day first => morning..night)
@@ -253,7 +264,7 @@ local function styleTitle(titleItem)
   local tool = comp:FindToolByID("TextPlus")
   if not tool then
     local list = comp:GetToolList(false, "TextPlus")
-    if list then for _, t in pairs(list) do tool = t; break end end
+    tool = objs(list)[1]
   end
   if not tool then log("Title: Text+ tool not found."); return end
 
@@ -374,7 +385,9 @@ local function main()
   log("Found %d video clips and music '%s'", #videos, music.name)
 
   local markerSecs = {}
-  for f, _ in pairs(music.markers) do table.insert(markerSecs, tonumber(f) / srcFps) end
+  for f, m in pairs(music.markers) do
+    if tonumber(f) and type(m) == "table" then table.insert(markerSecs, tonumber(f) / srcFps) end
+  end
   table.sort(markerSecs)
 
   -- 2. new project ---------------------------------------------------------------------
@@ -406,7 +419,7 @@ local function main()
   for _, v in ipairs(videos) do table.insert(paths, v.path) end
   local imported = mp:ImportMedia(paths) or {}
   local byPath = {}
-  for _, it in pairs(imported) do byPath[it:GetClipProperty("File Path")] = it end
+  for _, it in ipairs(objs(imported)) do byPath[it:GetClipProperty("File Path")] = it end
   music.item = byPath[music.path]
   if not music.item then error("Could not import the music file.") end
 
@@ -500,7 +513,7 @@ local function main()
       mediaPoolItem = v.item, startFrame = s0, endFrame = e0,
       mediaType = 1, trackIndex = 1, recordFrame = recF,
     } })
-    local item = res and res[1]
+    local item = objs(res)[1]
     if item then
       cursor = item:GetEnd()
       table.insert(placed, { item = item, clip = v })
@@ -525,7 +538,7 @@ local function main()
     mediaPoolItem = music.item, startFrame = 0, endFrame = musicLen,
     trackIndex = 1, recordFrame = start,
   } })
-  if not (mres and mres[1]) then
+  if not objs(mres)[1] then
     log("Could not place the music automatically - drag it onto A1 at the start.")
   end
 
