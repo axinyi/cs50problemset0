@@ -202,6 +202,7 @@ end
 -- Export the frame under the playhead and add its pixels to hist.
 local stillFormat = nil
 local function probeFrame(project, hist)
+  if not HAS_IO then return false end
   local formats = stillFormat and { stillFormat } or { "bmp", "ppm" }
   for _, ext in ipairs(formats) do
     local path = TMP .. SEP .. "gizmo_probe." .. ext
